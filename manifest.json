@@ -1,0 +1,13 @@
+{
+  "display_information": {
+    "name": "HBP 아이디어봇",
+    "description": "매일 아침과 저녁 9시에 영상으로 풀어볼 질문 일곱 가지를 소개합니다.",
+    "background_color": "#203446"
+  },
+  "features": {
+    "bot_user": { "display_name": "아이디어봇", "always_online": false }
+  },
+  "oauth_config": {
+    "scopes": { "bot": ["chat:write", "channels:history"] }
+  }
+}

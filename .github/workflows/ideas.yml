@@ -1,0 +1,44 @@
+name: 영상 아이디어
+on:
+  schedule:
+    - cron: '0 23 * * *'
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 한국 시간 발행 회차
+        type: choice
+        options: ['09', '21']
+      preview:
+        description: 미리보기만 실행
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: hbp-ideas
+  cancel-in-progress: false
+jobs:
+  ideas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test
+      - name: 아이디어 준비 및 예약
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: C0CLJ8X54E8
+          IDEA_SLOT: ${{ inputs.slot || (github.event.schedule == '0 23 * * *' && '09' || '21') }}
+          PREVIEW: ${{ inputs.preview }}
+        run: |
+          if [ "$PREVIEW" = "true" ]; then
+            node ideas.mjs --dry-run
+          else
+            node ideas.mjs
+          fi
