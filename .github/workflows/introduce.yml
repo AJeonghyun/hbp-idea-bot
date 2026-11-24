@@ -1,0 +1,30 @@
+name: 아이디어봇 자기소개
+on: workflow_dispatch
+permissions: {}
+concurrency: hbp-introduction
+jobs:
+  introduce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 채널에 사용 안내 게시
+        env:
+          TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        shell: python
+        run: |
+          import json, os, urllib.request
+          text = """안녕하세요, *아이디어봇*입니다. 다음 영상에서 ‘뭘 다뤄볼까?’ 싶을 때 이 채널을 열어 보세요.
+
+          매일 *오전 9시와 오후 9시(한국 시간)*, 영상으로 풀어볼 질문 7개와 첫 장면을 함께 올려요.
+
+          예를 들면 *“같은 방에 있던 금속 숟가락과 나무 숟가락은 왜 만졌을 때 온도가 다르게 느껴질까?”* 같은 질문이에요. 첫 장면은 두 숟가락의 온도를 재고, 손으로 만졌을 때의 느낌과 비교하는 거예요.
+
+          최근 연예·정치·사회·문화 기사에서 설명할 거리가 보이면 7개 중 최대 2개를 뉴스 주제로 골라요. 보도일과 연합뉴스 원문 링크도 함께 달아요.
+
+          마음에 드는 주제가 있으면 그날 추천 글의 *스레드에 번호와 촬영 아이디어*를 남겨 주세요. 팀원들이 어느 주제를 이야기하는지 바로 알 수 있어요."""
+          payload = {"channel":"C0CLJ8X54E8", "text":text, "unfurl_links":False}
+          request = urllib.request.Request("https://slack.com/api/chat.postMessage", data=json.dumps(payload).encode(), headers={"Content-Type":"application/json", "Authorization":"Bearer "+os.environ["TOKEN"]})
+          with urllib.request.urlopen(request, timeout=20) as response:
+              result = json.load(response)
+          if not result["ok"]:
+              raise RuntimeError(result["error"])
+          print("Posted", result["channel"], result["ts"])
