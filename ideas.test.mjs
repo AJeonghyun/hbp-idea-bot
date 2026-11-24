@@ -7,7 +7,7 @@ const due = new Date('2026-11-24T00:00:10Z');
 const slot = edition(before, '09');
 const env = { SLACK_BOT_TOKEN: 'test', SLACK_CHANNEL_ID: 'C_TEST', IDEA_SLOT: '09' };
 const link = 'https://www.yna.co.kr/view/AKR1234';
-const xml = `<rss><item><title><![CDATA[박물관 옛 그림 특별전]]></title><link>${link}</link><pubDate>Mon, 23 Nov 2026 19:00:00 +0900</pubDate></item></rss>`;
+const xml = `<rss><item><title><![CDATA[신작 영화 박스오피스 1위]]></title><link>${link}</link><pubDate>Mon, 23 Nov 2026 19:00:00 +0900</pubDate></item></rss>`;
 
 function fakeNetwork({ pending = [], pages = [{}], writeError } = {}) {
   const calls = [];
@@ -47,7 +47,18 @@ test('기사는 최근 연합뉴스 원문에서만 고른다', () => {
   assert.deepEqual(parseFeed(xml.replace('www.yna.co.kr/view', 'evil.test/view'), before), []);
   assert.deepEqual(parseFeed(xml.replace('23 Nov', '10 Nov'), before), []);
   assert.deepEqual(parseFeed(xml.replace('23 Nov', '28 Nov'), before), []);
-  assert.deepEqual(parseFeed(xml.replace('박물관 옛 그림 특별전', '열애설'), before), []);
+  assert.deepEqual(parseFeed(xml.replace('신작 영화 박스오피스 1위', '열애설'), before), []);
+});
+
+test('추천에 사용하는 기사 피드는 연합뉴스 연예 한 곳이다', async () => {
+  const requested = [];
+  const result = await run({ env, dryRun: true, now: () => before, request: async url => {
+    requested.push(String(url));
+    return new Response(xml);
+  } });
+  assert.deepEqual(requested, ['https://www.yna.co.kr/rss/entertainment.xml']);
+  assert.ok(result.text.includes(link));
+  assert.deepEqual(parseFeed(xml.replace('신작 영화 박스오피스 1위', '청소년 교통비 지원 조례 개정안 발의'), before), []);
 });
 
 test('각 판에 7개, 최근 판의 링크·질문과 같은 실험 장면 반복을 피한다', () => {

@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { catalog } from './catalog.mjs';
 
 const DAY = 86_400_000;
-const CHANNEL_FEEDS = ['society', 'politics', 'culture', 'entertainment'];
+const ENTERTAINMENT_FEED = 'https://www.yna.co.kr/rss/entertainment.xml';
 const REQUEST_TIMEOUT = 15_000;
 
 export function edition(now, slot) {
@@ -29,18 +29,13 @@ function readTag(item, tag) {
 
 // Use the publisher's RSS headlines as article references. Each angle is tied to a specific reporting question.
 const storyAngles = [
-  [/개정안|법안|조례|시행령|법 시행/, '언제부터 누구에게 적용될까?', '발의·의결·시행 중 어디까지 왔는지 달력에 표시하고 원문에서 적용 대상을 확인한다.'],
-  [/투표|선거구|공천/, '유권자가 결정하는 단계는 어디일까?', '후보가 정해지는 날부터 투표일까지를 빈 달력 위에 표시한다.'],
-  [/(요금|운임|가격).{0,14}(인상|인하|상승|하락|동결)|물가.{0,12}(상승|하락)/, '같은 걸 사면 얼마를 더 내게 될까?', '기사에 나온 품목이나 이용 조건을 고정하고 전후 금액을 영수증 두 장으로 보여준다.'],
-  [/예산안|예산 편성|추경|지원금|수당 지급/, '돈이 실제로 어디까지 가는 걸까?', '기사 속 금액을 칠판에 적고 지급 주체에서 최종 사용처까지 화살표로 연결한다.'],
-  [/시범|시행|개편|도입/, '시범 운영과 정식 적용은 어디서 갈릴까?', '첫 화면에 지역과 날짜를 띄우고 발표문에서 적용 범위를 확인한다.'],
-  [/리메이크|원작|각색/, '원작에서 어떤 장면이 달라질까?', '원작 소개와 공식 예고편에서 같은 사건을 찾아 표현 방식을 대조한다.'],
-  [/(공연|투어|콘서트).{0,16}(개최|개막|매진|예매)|티켓.{0,12}(예매|오픈|매진)/, '팬이 실제로 표를 구하는 과정은 어떨까?', '공식 예매 공지를 열고 좌석도와 판매 일정을 한 화면에서 읽는다.'],
-  [/시청률.{0,9}(％|%|기록|돌파)|관객.{0,10}(만명|만 명|돌파)|박스오피스|차트.{0,10}(위|진입)/, '이 순위는 무엇을 세어 만든 걸까?', '보도에 쓰인 집계표에서 측정 기간과 단위를 먼저 가린 뒤 하나씩 공개한다.'],
-  [/영화제|수상|후보작/, '후보와 수상작은 누가 어떻게 고를까?', '주최 측 심사 규정을 열고 출품에서 발표까지를 세 컷으로 정리한다.'],
-  [/특별전|기획전|전시회|전시 개막|전시 개최|유물 공개/, '관람객이 가장 먼저 살펴볼 디테일은 뭘까?', '기관이 공개한 작품 설명에서 한 가지 디테일을 골라 전체 모습과 번갈아 보여준다.'],
-  [/역대.{0,8}(폭염|기온|강수|첫눈|한파)|(기온|강수량|적설량).{0,10}(기록|최고|최저)|평년보다/, '이번 수치는 예년 같은 날과 얼마나 다를까?', '기사 속 관측 지점을 지도에 찍고 같은 지점의 평년값과 겹쳐 그린다.'],
-  [/조사 결과|조사서|통계|집계/, '이 숫자에는 누가 포함됐을까?', '원표의 조사 대상과 기간을 먼저 보여준 뒤 헤드라인의 숫자를 다시 읽는다.'],
+  [/원작|각색|실사화/, '원작의 한 장면은 화면에서 어떻게 달라졌을까?', '원작 소개와 공식 예고편에서 같은 사건을 찾아 두 장면의 시점과 구도를 비교한다.'],
+  [/리메이크/, '새 버전은 원작의 어떤 순간을 살렸을까?', '두 버전의 공식 소개에서 같은 대목을 찾고 달라진 표현을 짚어 본다.'],
+  [/(티켓|공연|투어|콘서트).{0,18}(매진|예매|선예매)/, '팬이 실제로 표를 구하는 과정은 어떨까?', '공식 예매 공지를 열고 좌석도와 판매 일정을 한 화면에서 읽는다.'],
+  [/월드투어|월드 투어/, '이 투어는 어떤 도시를 거쳐 갈까?', '공식 발표에 나온 도시만 지도에 찍고 공연 일정에 맞춰 순서대로 잇는다.'],
+  [/시청률|관객.{0,10}(만명|만 명|돌파)|박스오피스|차트.{0,12}(위|진입|정상)/, '이 기록은 무엇을 세어 만든 걸까?', '기사에 인용된 집계표에서 측정 기간과 단위를 먼저 가린 뒤 하나씩 공개한다.'],
+  [/영화제.{0,15}(수상|후보)|시상식|남우주연상|여우주연상|작품상|신인상/, '이 상은 누가 어떤 기준으로 고를까?', '주최 측의 부문별 심사 기준에서 후보 자격과 최종 선정 방식을 찾아본다.'],
+  [/선공개곡|타이틀곡|미니앨범|정규앨범|정규 앨범/, '팬들이 앨범을 듣기 전에 먼저 만나는 곡은 뭘까?', '공식 공개 일정에서 첫 티저부터 앨범 발매일까지를 타임라인으로 정리한다.'],
 ];
 
 export function parseFeed(xml, now) {
@@ -59,14 +54,14 @@ export function parseFeed(xml, now) {
 }
 
 async function recentNews(now, request) {
-  const feeds = await Promise.allSettled(CHANNEL_FEEDS.map(async feed => {
-    const response = await request(`https://www.yna.co.kr/rss/${feed}.xml`, { signal: AbortSignal.timeout(REQUEST_TIMEOUT) });
+  try {
+    const response = await request(ENTERTAINMENT_FEED, { signal: AbortSignal.timeout(REQUEST_TIMEOUT) });
     if (!response.ok) throw new Error(String(response.status));
     return parseFeed(await response.text(), now);
-  }));
-  const stories = feeds.flatMap(result => result.status === 'fulfilled' ? result.value : []);
-  if (!stories.length) console.warn('최근 기사 후보가 없어 일상 주제로 구성합니다.');
-  return stories;
+  } catch (error) {
+    console.warn('연예 기사 피드를 읽지 못해 일상 주제로 구성합니다.', error.message);
+    return [];
+  }
 }
 
 function rank(seed, value) {
@@ -128,7 +123,7 @@ const experiments = experimentFamilies.flatMap(({ pairs, angles }) =>
   pairs.flatMap(pair => angles.map(([question, scene]) => [`${pair}, ${question}`, scene])));
 const ideas = [...catalog, ...experiments];
 
-export function compose(title, history, stories, source = ideas) {
+export function composeMessage(title, history, stories, source = ideas) {
   const used = new Map();
   for (const { text, ts } of history) {
     for (const line of text.split('\n')) {
@@ -154,16 +149,55 @@ export function compose(title, history, stories, source = ideas) {
   for (const [question, scene] of ranked) {
     if (scenes.has(scene)) continue;
     scenes.add(scene);
-    entries.push([escapeText(question), escapeText(scene)]);
+    entries.push({ question, scene });
     if (entries.length === 7 - headlines.length) break;
   }
-  for (const { headline, question, scene, link, published } of headlines) {
-    const date = new Date(published + 9 * 3_600_000).toISOString().slice(5, 10);
-    entries.push([`“${escapeText(headline)}” — ${question}`, `${scene} · <${link}|연합뉴스 ${date} 보도>`]);
-  }
+  entries.push(...headlines);
   if (entries.length !== 7) throw new Error('아이디어 7개를 구성할 수 없습니다.');
-  const ballot = '🗳️ 만들고 싶은 주제에 번호 이모지로 투표해 주세요. 예를 들어 3번은 반응 추가에서 three를 검색해 3️⃣를 고르세요. 여러 주제에 투표할 수 있어요. 각 번호 옆 숫자가 현재 득표수예요. 언제든 투표하거나 바꿀 수 있어요.';
-  return [title, ...entries.map(([question, scene], index) => `${index + 1}. ${question}\n   ${scene}`), ballot].join('\n\n');
+
+  const editionInfo = title.match(/(\d{4})-(\d{2})-(\d{2}) (오전판|저녁판)$/);
+  const heading = editionInfo
+    ? (editionInfo[4] === '오전판' ? '☀️ 아침의 영상 아이디어' : '🌙 저녁의 영상 아이디어')
+    : title;
+  const blocks = [{ type: 'header', text: { type: 'plain_text', text: heading, emoji: true } }];
+  if (editionInfo) {
+    const [, year, month, day] = editionInfo;
+    blocks.push({ type: 'context', elements: [{ type: 'plain_text', text: `${year}년 ${Number(month)}월 ${Number(day)}일  ·  오늘의 주제 7개` }] });
+  }
+
+  const fallback = [title];
+  entries.forEach(({ question, scene, headline, link, published }, index) => {
+    if (index === 0 || (headlines.length && index === entries.length - headlines.length)) {
+      blocks.push({ type: 'divider' }, { type: 'context', elements: [{
+        type: 'mrkdwn', text: headline ? '*연예 뉴스에서*' : '*일상에서 찾은 질문*',
+      }] });
+    }
+    const number = index + 1;
+    const content = [
+      { type: 'text', text: `${number}.  ${question}`, style: { bold: true } },
+    ];
+    let fallbackQuestion = escapeText(question);
+    let fallbackScene = escapeText(scene);
+    if (headline) {
+      const date = new Date(published + 9 * 3_600_000).toISOString().slice(5, 10);
+      // Use a native link for the publisher's headline so punctuation remains literal.
+      content.push({ type: 'text', text: '\n' }, { type: 'link', url: link, text: headline },
+        { type: 'text', text: `  ·  연합뉴스 ${date}` });
+      fallbackQuestion = `“${escapeText(headline)}” — ${fallbackQuestion}`;
+      fallbackScene += ` · <${link}|연합뉴스 ${date} 보도>`;
+    }
+    content.push({ type: 'text', text: `\n첫 장면  ·  ${scene}` });
+    blocks.push({ type: 'rich_text', elements: [{ type: 'rich_text_section', elements: content }] });
+    fallback.push(`${number}. ${fallbackQuestion}\n   ${fallbackScene}`);
+  });
+  const ballot = '마음에 드는 주제의 번호 이모지로 투표해 주세요. 3번은 반응 추가에서 three를 검색해 3️⃣를 고르면 돼요. 여러 번호에 투표할 수 있고, 이모지 옆 숫자가 현재 득표수예요.';
+  blocks.push({ type: 'divider' }, { type: 'context', elements: [{ type: 'mrkdwn', text: `*🗳️ 팀 투표*　${ballot}` }] });
+  fallback.push(ballot);
+  return { text: fallback.join('\n\n'), blocks };
+}
+
+export function compose(title, history, stories, source = ideas) {
+  return composeMessage(title, history, stories, source).text;
 }
 
 function slackClient(token, request) {
@@ -213,10 +247,10 @@ export async function run({ env = process.env, dryRun = false, now = () => new D
     history = await botHistory(slack, channel, postAt - 90 * DAY / 1000);
     if (history.some(row => row.text.split('\n')[0] === title)) return { status: 'already-sent' };
   }
-  const text = compose(title, history, await recentNews(started, request));
-  if (dryRun) return { status: 'preview', text };
+  const message = composeMessage(title, history, await recentNews(started, request));
+  if (dryRun) return { status: 'preview', ...message };
   const scheduled = postAt > now().getTime() / 1000;
-  const fields = { channel, text, unfurl_links: false, unfurl_media: false, ...(scheduled ? { post_at: postAt } : {}) };
+  const fields = { channel, ...message, unfurl_links: false, unfurl_media: false, ...(scheduled ? { post_at: postAt } : {}) };
   const response = await slack(scheduled ? 'chat.scheduleMessage' : 'chat.postMessage', fields);
   const id = scheduled ? response.scheduled_message_id : response.ts;
   if (!id) throw new Error('Slack 전송 확인값을 받지 못했습니다. 다시 실행하여 예약·게시 기록을 확인하세요.');

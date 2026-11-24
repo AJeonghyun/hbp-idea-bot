@@ -19,18 +19,28 @@ jobs:
         shell: python
         run: |
           import json, os, urllib.request
-          text = """안녕하세요, 아이디어봇입니다. 다음 영상에서 ‘뭘 다뤄볼까?’ 싶을 때 이 채널을 열어 보세요.
+          title = "아이디어봇 사용 안내"
+          schedule = "매일 오전 9시 · 오후 9시 (한국 시간)"
+          about = "일상에서 생긴 궁금증을 영상 질문 7개로 풀어, 바로 찍어 볼 첫 장면과 함께 보내요. 연합뉴스 연예 기사에서 고른 주제는 회차당 최대 2개이며 보도일과 원문 링크를 함께 담아요."
+          question = "같은 방에 둔 숟가락인데 왜 금속이 나무보다 차갑게 느껴질까?"
+          scene = "두 숟가락의 표면 온도를 먼저 재고, 손으로 만졌을 때의 느낌과 비교해 보세요."
+          voting = "추천 글에서 마음에 드는 번호에 이모지 반응을 남겨 주세요. 3번이면 반응 추가에서 three를 검색해 3️⃣를 골라요. 이미 달린 이모지는 눌러서 투표하거나 취소할 수 있어요."
+          counts = "번호 옆 숫자가 현재 득표수예요. 마감 없이 여러 주제에 투표하고, 촬영할 주제는 팀에서 정해요."
 
-          매일 *오전 9시와 오후 9시(한국 시간)*, 영상으로 풀어볼 질문 7개와 첫 장면을 함께 올려요.
+          def section(text):
+              return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
 
-          예를 들면 *“같은 방에 있던 금속 숟가락과 나무 숟가락은 왜 만졌을 때 온도가 다르게 느껴질까?”* 같은 질문이에요. 첫 장면은 두 숟가락의 온도를 재고, 손으로 만졌을 때의 느낌과 비교하는 거예요.
-
-          최근 연예·정치·사회·문화 기사에서 설명할 거리가 보이면 7개 중 최대 2개를 뉴스 주제로 골라요. 보도일과 연합뉴스 원문 링크도 함께 달아요.
-
-          🗳️ 투표는 그날의 추천 메시지에 번호 이모지 반응을 달면 됩니다. 예를 들어 3번이 좋다면 ‘반응 추가’에서 three를 검색해 3️⃣를 고르세요. 누군가 먼저 달았다면 그 숫자를 누르면 돼요. 여러 주제에 투표하거나 다시 눌러 취소할 수 있어요.
-
-          각 번호 이모지 옆의 숫자가 그 주제의 현재 득표수예요. 투표 마감은 없으니 편할 때 참여해 주세요. 어떤 주제를 촬영할지는 팀에서 정해요."""
-          payload = {"channel":"C0CLJ8X54E8", "text":text}
+          blocks = [
+              {"type": "header", "text": {"type": "plain_text", "text": title}},
+              {"type": "context", "elements": [{"type": "plain_text", "text": schedule}]},
+              section(about),
+              {"type": "divider"},
+              section("*이런 질문이 올라와요*\n" + question + "\n>첫 장면 · " + scene),
+              {"type": "divider"},
+              section("*번호로 투표하기*\n" + voting + "\n" + counts),
+          ]
+          text = "\n\n".join([title, schedule, about, question + "\n첫 장면 · " + scene, voting, counts])
+          payload = {"channel": "C0CLJ8X54E8", "text": text, "blocks": blocks}
           method = "chat.postMessage"
           if os.environ["UPDATE_ORIGINAL"] == "true":
               payload["ts"] = "1795520167.385449"
@@ -40,4 +50,8 @@ jobs:
               result = json.load(response)
           if not result["ok"]:
               raise RuntimeError(result["error"])
+          delivered = result.get("message", {}).get("blocks", [])
+          if [block.get("type") for block in delivered] != [block["type"] for block in blocks]:
+              raise RuntimeError("Slack 응답에서 소개글의 Block Kit 구성을 확인하지 못했습니다.")
+          print("Verified", len(delivered), "blocks")
           print("Posted", result["channel"], result["ts"])
