@@ -162,14 +162,14 @@ export function compose(title, history, stories, source = ideas) {
     entries.push([`“${escapeText(headline)}” — ${question}`, `${scene} · <${link}|연합뉴스 ${date} 보도>`]);
   }
   if (entries.length !== 7) throw new Error('아이디어 7개를 구성할 수 없습니다.');
-  const ballot = '🗳️ 만들고 싶은 주제에 번호 이모지로 투표해 주세요. 예를 들어 3번은 반응 추가에서 three를 검색해 3️⃣를 고르세요. 여러 주제에 투표할 수 있어요. 2표 이상인 단독 1위는 채널에 공지합니다.';
+  const ballot = '🗳️ 만들고 싶은 주제에 번호 이모지로 투표해 주세요. 예를 들어 3번은 반응 추가에서 three를 검색해 3️⃣를 고르세요. 여러 주제에 투표할 수 있어요. 각 번호 옆 숫자가 현재 득표수예요. 언제든 투표하거나 바꿀 수 있어요.';
   return [title, ...entries.map(([question, scene], index) => `${index + 1}. ${question}\n   ${scene}`), ballot].join('\n\n');
 }
 
-export function slackClient(token, request) {
+function slackClient(token, request) {
   return async (method, fields = {}) => {
     const url = new URL(`https://slack.com/api/${method}`);
-    const get = method === 'conversations.history' || method === 'chat.getPermalink';
+    const get = method === 'conversations.history';
     if (get) url.search = new URLSearchParams(fields).toString();
     const response = await request(url, {
       method: get ? 'GET' : 'POST',
@@ -183,7 +183,7 @@ export function slackClient(token, request) {
   };
 }
 
-export async function botHistory(slack, channel, oldest, prefixes = ['영상 아이디어 · ']) {
+async function botHistory(slack, channel, oldest) {
   const auth = await slack('auth.test');
   const messages = [];
   let cursor;
@@ -191,7 +191,7 @@ export async function botHistory(slack, channel, oldest, prefixes = ['영상 아
     const page = await slack('conversations.history', { channel, oldest: String(oldest), limit: 200, ...(cursor ? { cursor } : {}) });
     for (const message of page.messages) {
       if (((auth.bot_id && message.bot_id === auth.bot_id) || message.user === auth.user_id)
-          && prefixes.some(prefix => message.text?.startsWith(prefix))) messages.push(message);
+          && message.text?.startsWith('영상 아이디어 · ')) messages.push(message);
     }
     cursor = page.response_metadata?.next_cursor;
   } while (cursor);
