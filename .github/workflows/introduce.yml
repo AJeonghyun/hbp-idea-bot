@@ -1,5 +1,11 @@
 name: 아이디어봇 자기소개
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      update_original:
+        description: 기존 안내 메시지를 수정
+        type: boolean
+        default: false
 permissions: {}
 concurrency: hbp-introduction
 jobs:
@@ -8,11 +14,12 @@ jobs:
     steps:
       - name: 채널에 사용 안내 게시
         env:
+          UPDATE_ORIGINAL: ${{ inputs.update_original }}
           TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         shell: python
         run: |
           import json, os, urllib.request
-          text = """안녕하세요, *아이디어봇*입니다. 다음 영상에서 ‘뭘 다뤄볼까?’ 싶을 때 이 채널을 열어 보세요.
+          text = """안녕하세요, 아이디어봇입니다. 다음 영상에서 ‘뭘 다뤄볼까?’ 싶을 때 이 채널을 열어 보세요.
 
           매일 *오전 9시와 오후 9시(한국 시간)*, 영상으로 풀어볼 질문 7개와 첫 장면을 함께 올려요.
 
@@ -20,9 +27,15 @@ jobs:
 
           최근 연예·정치·사회·문화 기사에서 설명할 거리가 보이면 7개 중 최대 2개를 뉴스 주제로 골라요. 보도일과 연합뉴스 원문 링크도 함께 달아요.
 
-          마음에 드는 주제가 있으면 그날 추천 글의 *스레드에 번호와 촬영 아이디어*를 남겨 주세요. 팀원들이 어느 주제를 이야기하는지 바로 알 수 있어요."""
-          payload = {"channel":"C0CLJ8X54E8", "text":text, "unfurl_links":False}
-          request = urllib.request.Request("https://slack.com/api/chat.postMessage", data=json.dumps(payload).encode(), headers={"Content-Type":"application/json", "Authorization":"Bearer "+os.environ["TOKEN"]})
+          🗳️ 투표는 그날의 추천 메시지에 번호 이모지 반응을 달면 됩니다. 예를 들어 3번이 좋다면 ‘반응 추가’에서 three를 검색해 3️⃣를 고르세요. 누군가 먼저 달았다면 그 숫자를 누르면 돼요. 여러 주제에 투표하거나 다시 눌러 취소할 수 있어요.
+
+          오전·오후 9시 5분경, 게시 후 11시간 이상 지난 추천 글을 집계해요. 한 회차에서 단독 1위가 2표 이상이면 주제와 첫 촬영 장면을 이 채널에 공지합니다. 동점이거나 표가 부족하면 게시 후 7일 동안 다음 집계에서 다시 확인해요."""
+          payload = {"channel":"C0CLJ8X54E8", "text":text}
+          method = "chat.postMessage"
+          if os.environ["UPDATE_ORIGINAL"] == "true":
+              payload["ts"] = "1795520167.385449"
+              method = "chat.update"
+          request = urllib.request.Request("https://slack.com/api/"+method, data=json.dumps(payload).encode(), headers={"Content-Type":"application/json", "Authorization":"Bearer "+os.environ["TOKEN"]})
           with urllib.request.urlopen(request, timeout=20) as response:
               result = json.load(response)
           if not result["ok"]:
