@@ -236,7 +236,11 @@ export async function run({ env = process.env, dryRun = false, now = () => new D
   const started = now();
   const { title, postAt } = edition(started, env.IDEA_SLOT);
   const secondsToSlot = postAt - started.getTime() / 1000;
-  if (!dryRun && (secondsToSlot < -90 * 60 || secondsToSlot > 3 * 3600)) return { status: 'stale' };
+  // Manual dispatch can recover today's edition until the adjacent edition is due.
+  const outsideWindow = env.MANUAL_DISPATCH === 'true'
+    ? Math.abs(secondsToSlot) >= 12 * 3600
+    : secondsToSlot < -90 * 60 || secondsToSlot > 3 * 3600;
+  if (!dryRun && outsideWindow) return { status: 'stale' };
   const channel = env.SLACK_CHANNEL_ID;
   const slack = slackClient(env.SLACK_BOT_TOKEN, request);
   let history = [];

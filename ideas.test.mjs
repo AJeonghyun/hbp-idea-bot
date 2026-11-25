@@ -121,3 +121,15 @@ test('Slack 전송 실패 시 작업 실패로 기록한다', async () => {
   const api = fakeNetwork({ writeError: 'not_in_channel' });
   await assert.rejects(run({ env, now: () => before, request: api.request }), /not_in_channel/);
 });
+
+test('수동 복구는 당일 누락된 오전판만 게시하고 같은 회차의 재실행은 건너뛴다', async () => {
+  const manual = { ...env, MANUAL_DISPATCH: 'true' };
+  const now = () => new Date('2026-11-24T04:30:00Z');
+  const api = fakeNetwork();
+  const result = await run({ env: manual, now, request: api.request });
+  assert.equal(result.status, 'sent');
+  const { text } = api.calls.at(-1).fields;
+  const retry = fakeNetwork({ pages: [{ messages: [{ bot_id: 'BOT', text, ts: '123' }] }] });
+  assert.equal((await run({ env: manual, now, request: retry.request })).status, 'already-sent');
+  assert.equal((await run({ env: manual, now: () => new Date('2026-11-24T12:00:00Z'), request: assert.fail })).status, 'stale');
+});
