@@ -128,6 +128,7 @@ test('수동 복구는 당일 누락된 오전판만 게시하고 같은 회차�
   const api = fakeNetwork();
   const result = await run({ env: manual, now, request: api.request });
   assert.equal(result.status, 'sent');
+  assert.ok(!api.calls.some(call => call.method === 'chat.scheduledMessages.list'));
   const { text } = api.calls.at(-1).fields;
   const retry = fakeNetwork({ pages: [{ messages: [{ bot_id: 'BOT', text, ts: '123' }] }] });
   assert.equal((await run({ env: manual, now, request: retry.request })).status, 'already-sent');

@@ -246,8 +246,10 @@ export async function run({ env = process.env, dryRun = false, now = () => new D
   let history = [];
   if (!dryRun) {
     if (!channel || !env.SLACK_BOT_TOKEN) throw new Error('SLACK_CHANNEL_ID와 SLACK_BOT_TOKEN을 설정하세요.');
-    const pending = await slack('chat.scheduledMessages.list', { channel, oldest: String(postAt - 1), latest: String(postAt + 1) });
-    if (pending.scheduled_messages.some(row => Number(row.post_at) === postAt)) return { status: 'already-scheduled' };
+    if (secondsToSlot > 0) {
+      const pending = await slack('chat.scheduledMessages.list', { channel, oldest: String(postAt - 1), latest: String(postAt + 1) });
+      if (pending.scheduled_messages.some(row => Number(row.post_at) === postAt)) return { status: 'already-scheduled' };
+    }
     history = await botHistory(slack, channel, postAt - 90 * DAY / 1000);
     if (history.some(row => row.text.split('\n')[0] === title)) return { status: 'already-sent' };
   }
