@@ -1,0 +1,20 @@
+# Fly.io 배포 설정 (HBP 제작봇)
+# Socket Mode는 외부로 나가는 WebSocket만 쓰므로 공개 포트(http_service)가 필요 없습니다.
+app = "hbp-production-bot"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  DB_PATH = "/data/hbp.sqlite"
+
+[mounts]
+  source = "hbp_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+[[restart]]
+  policy = "always"

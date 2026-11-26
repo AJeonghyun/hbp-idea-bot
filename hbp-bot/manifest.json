@@ -1,0 +1,22 @@
+{
+  "display_information": {
+    "name": "HBP 제작봇",
+    "description": "영상 회차별 자료를 모으고 편집자의 수신 확인을 기록합니다.",
+    "background_color": "#343351"
+  },
+  "features": {
+    "bot_user": { "display_name": "HBP Bot", "always_online": false },
+    "slash_commands": [
+      { "command": "/hbp", "description": "회차 카드를 열거나 제작봇 사용법을 확인합니다", "usage_hint": "1화 또는 사용법", "should_escape": false }
+    ],
+    "shortcuts": [
+      { "name": "회차 자료로 등록", "type": "message", "callback_id": "register_asset", "description": "선택한 메시지를 영상 회차에 연결합니다" }
+    ]
+  },
+  "oauth_config": { "scopes": { "bot": ["commands", "chat:write", "channels:history"] } },
+  "settings": {
+    "event_subscriptions": { "bot_events": ["message.channels"] },
+    "interactivity": { "is_enabled": true },
+    "socket_mode_enabled": true
+  }
+}

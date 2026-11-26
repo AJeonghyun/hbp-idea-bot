@@ -1,0 +1,73 @@
+name: HBP 제작봇
+# GitHub Actions 작업은 최대 6시간까지만 실행됩니다.
+# 봇은 MAX_RUNTIME_MINUTES 뒤에 스스로 종료하고, 대기 중이던 다음 실행이 곧바로 이어받습니다.
+# 매시간 예약 실행이 대기열을 채워 두므로 교대 시 공백은 보통 1분 안쪽입니다.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hbp-bot
+  cancel-in-progress: false
+defaults:
+  run:
+    working-directory: hbp-bot
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      DB_PATH: ${{ github.workspace }}/hbp-bot/data/hbp.sqlite
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+      - name: 이전 데이터 불러오기
+        uses: actions/cache/restore@v4
+        with:
+          path: hbp-bot/data.enc
+          key: hbp-db-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: hbp-db-
+      - name: 데이터 복호화
+        env:
+          HBP_DB_KEY: ${{ secrets.HBP_DB_KEY }}
+        run: |
+          test -n "$HBP_DB_KEY" || { echo "저장소 secret HBP_DB_KEY를 설정하세요."; exit 1; }
+          mkdir -p data
+          if [ -f data.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -pass env:HBP_DB_KEY -in data.enc | tar -xz -C data
+            echo "이전 데이터를 불러왔습니다."
+          else
+            echo "저장된 데이터가 없어 새로 시작합니다."
+          fi
+      - name: 봇 실행
+        env:
+          SLACK_APP_TOKEN: ${{ secrets.HBP_SLACK_APP_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.HBP_SLACK_BOT_TOKEN }}
+          HOME_CHANNEL_ID: C0CM8RSN9LY
+          SCRIPT_CHANNEL_ID: C0CLE9BSHD0
+          IMAGE_CHANNEL_ID: C0CL9EUCUFM
+          MUSIC_CHANNEL_ID: C0CKZB3FU8P
+          DRAFT_CHANNEL_ID: C0CLCG0C63Y
+          SOURCE_CHANNEL_IDS: ''
+          MAX_RUNTIME_MINUTES: '340'
+        run: node index.mjs
+      - name: 데이터 암호화
+        if: always()
+        env:
+          HBP_DB_KEY: ${{ secrets.HBP_DB_KEY }}
+        run: |
+          if [ -n "$(ls -A data 2>/dev/null)" ]; then
+            tar -cz -C data . | openssl enc -aes-256-cbc -pbkdf2 -pass env:HBP_DB_KEY -out data.enc
+          fi
+      - name: 데이터 저장
+        if: always() && hashFiles('hbp-bot/data.enc') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: hbp-bot/data.enc
+          key: hbp-db-${{ github.run_id }}-${{ github.run_attempt }}
