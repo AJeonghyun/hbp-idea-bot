@@ -39,12 +39,23 @@ jobs:
         run: |
           test -n "$HBP_DB_KEY" || { echo "저장소 secret HBP_DB_KEY를 설정하세요."; exit 1; }
           mkdir -p data
-          if [ -f data.enc ]; then
+          if [ -f import.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -pass env:HBP_DB_KEY -in import.enc | tar -xz -C data
+            cp import.enc data.enc
+            echo "IMPORTED=true" >> "$GITHUB_ENV"
+            echo "가져온 데이터(import.enc)를 사용합니다."
+          elif [ -f data.enc ]; then
             openssl enc -d -aes-256-cbc -pbkdf2 -pass env:HBP_DB_KEY -in data.enc | tar -xz -C data
             echo "이전 데이터를 불러왔습니다."
           else
             echo "저장된 데이터가 없어 새로 시작합니다."
           fi
+      - name: 가져온 데이터 즉시 저장
+        if: env.IMPORTED == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: hbp-bot/data.enc
+          key: hbp-db-import-${{ github.run_id }}-${{ github.run_attempt }}
       - name: 봇 실행
         env:
           SLACK_APP_TOKEN: ${{ secrets.HBP_SLACK_APP_TOKEN }}
